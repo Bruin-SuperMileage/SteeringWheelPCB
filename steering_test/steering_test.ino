@@ -91,39 +91,44 @@ bool readHornSwitch(){
 void controlHeadlightOut(){
   bool state = readHeadlightSwitch(); // set this eq to a var
 
-  Serial.println("Headlight state: " + state);
-
+  Serial.print("Headlight state: ");
+  Serial.println(state);
+  
   digitalWrite(HEADLIGHT_MOSFET, state);
 }
 
 void controlLeftTurnOut(){
   bool state = readLeftTurnSwitch(); // set this eq to a var
 
-  Serial.println("Left turn blinker state: " + state);
-
+  Serial.println("Left turn blinker state: ");
+  Serial.println(state);
+  
   digitalWrite(LEFT_TURN_MOSFET, state);
 }
 
 void controlRightTurnOut(){
   bool state = readRightTurnSwitch(); // set this eq to a var
 
-  Serial.println("Right turn blinker state: " + state);
-
+  Serial.println("Right turn blinker state: ");
+  Serial.println(state);
+  
   digitalWrite(RIGHT_TURN_MOSFET, state);
 }
 
 void controlBrakeOut(){
   bool state = readBrakeSwitch(); // set this eq to a var
 
-  Serial.println("Brake state: " + state);
-
+  Serial.println("Brake state: ");
+  Serial.println(state);
+  
   digitalWrite(BRAKE_MOSFET, state);
 }
 
 void controlHorn(){
   bool state = readHornSwitch();
   
-  Serial.println("Horn state: " + state);
-
+  Serial.println("Horn state: ");
+  Serial.println(state);
+  
   digitalWrite(HORN_MOSFET, state);
 }
