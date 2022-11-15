@@ -25,20 +25,6 @@
 #define IN_4 12
 
 
-// Status Booleans
-bool lastHeadlightIn = false;
-bool lastHeadlightOut = false;
-
-bool lastLeftTurnIn = false;
-bool lastLeftTurnOut = false;
-
-bool lastRightTurnIn = false;
-bool lastRightTurnOut = false;
-
-bool lastBrakeIn = false;
-bool lastBrakeOut = false;
-
-
 void setup() {
   // put your setup code here, to run once:
 
@@ -103,69 +89,41 @@ bool readHornSwitch(){
 
 
 void controlHeadlightOut(){
-  bool status = readHeadlightSwitch(); // set this eq to a var
+  bool state = readHeadlightSwitch(); // set this eq to a var
 
-  Serial.print("Headlight switch status: " + status);
+  Serial.println("Headlight state: " + state);
 
-  // code to control headlight light
-  if(status && (status != lastHeadlightIn)){ // When button pressed
-    digitalWrite(HEADLIGHT_MOSFET, !lastHeadlightOut);
-    lastHeadlightOut = !lastHeadlightOut;
-    Serial.println(", Output: " + lastHeadlightOut);
-  }
-
-  lastHeadlightIn = status;
+  digitalWrite(HEADLIGHT_MOSFET, state);
 }
 
 void controlLeftTurnOut(){
-  bool status = readLeftTurnSwitch(); // set this eq to a var
+  bool state = readLeftTurnSwitch(); // set this eq to a var
 
-    Serial.print("Left turn switch status: " + status);
+  Serial.println("Left turn blinker state: " + state);
 
-  // code to control left turn light
-  if(status && (status != lastLeftTurnIn)){ // When button pressed
-    digitalWrite(LEFT_TURN_MOSFET, !lastLeftTurnOut);
-    lastLeftTurnOut = !lastLeftTurnOut;
-    Serial.println(", Output: " + lastLeftTurnOut);
-  }
-
-  lastLeftTurnIn = status;
+  digitalWrite(LEFT_TURN_MOSFET, state);
 }
 
 void controlRightTurnOut(){
-  bool status = readRightTurnSwitch(); // set this eq to a var
+  bool state = readRightTurnSwitch(); // set this eq to a var
 
-  Serial.print("Right turn switch status: " + status);
+  Serial.println("Right turn blinker state: " + state);
 
-  // code to control right turn light
-  if(status && (status != lastRightTurnIn)){ // When button pressed
-    digitalWrite(RIGHT_TURN_MOSFET, !lastRightTurnOut);
-    lastRightTurnOut = !lastRightTurnOut;
-    Serial.println(", Output: " + lastRightTurnOut);
-  }
-
-  lastRightTurnIn = status;
+  digitalWrite(RIGHT_TURN_MOSFET, state);
 }
 
 void controlBrakeOut(){
-  bool status = readBrakeSwitch(); // set this eq to a var
+  bool state = readBrakeSwitch(); // set this eq to a var
 
-  Serial.print("Brake switch status: " + status);
+  Serial.println("Brake state: " + state);
 
-  // code to control brake light
-  if(status && (status != lastBrakeIn)){ // When button pressed
-    digitalWrite(BRAKE_MOSFET, !lastBrakeOut);
-    lastBrakeOut = !lastBrakeOut;
-    Serial.println(", Output: " + lastBrakeOut);
-  }
-
-  lastBrakeIn = status;
+  digitalWrite(BRAKE_MOSFET, state);
 }
 
 void controlHorn(){
-  bool status = readHornSwitch();
+  bool state = readHornSwitch();
   
-  Serial.println("Horn status: " + status);
+  Serial.println("Horn state: " + state);
 
-  digitalWrite(HORN_MOSFET, status);
+  digitalWrite(HORN_MOSFET, state);
 }
