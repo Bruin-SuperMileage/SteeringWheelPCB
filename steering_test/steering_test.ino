@@ -28,6 +28,8 @@
 void setup() {
   // put your setup code here, to run once:
 
+  Serial.begin(9600);
+ 
  // INPUT FUNCTION // 
   pinMode(DAQ_BUTTON, INPUT);
   pinMode(HEADLIGHT_SWITCH, INPUT);
@@ -57,11 +59,18 @@ void setup() {
 void loop() {
 
   // MANAGE STATUS LEDS
+  
   controlHeadlightOut();
-  controlLeftTurnOut();
+  /*controlLeftTurnOut();
   controlRightTurnOut();
   controlBrakeOut();
-  controlHorn();
+  controlHorn();*/
+  //bool state = true;
+  //digitalWrite(HEADLIGHT_MOSFET, state);
+
+  //Serial.print("Switch state: ");
+  //Serial.println(digitalRead(HEADLIGHT_SWITCH));
+  //delay(1000);
 }
 
 
