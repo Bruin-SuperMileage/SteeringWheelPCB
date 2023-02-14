@@ -1,9 +1,9 @@
 #include <FastLED.h>
 
 #define LED_PIN     7
-#define NUM_LEDS    20
+#define NUM_LEDS    10
 #define SHOW_DELAY 100
-#define TRANSITION_DELAY 2000
+#define TRANSITION_DELAY 500
 
 CRGB leds[NUM_LEDS];
 
@@ -17,7 +17,7 @@ LED_STATE state = ON;
 
 void setup() {
 
-  FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, NUM_LEDS);
+  FastLED.addLeds<WS2812, LED_PIN, RGB>(leds, NUM_LEDS);
 
   current_time = millis();
 }
@@ -41,6 +41,7 @@ void loop(){
       state = ON_DELAY;
       leds_on = 0;
       current_time = millis();
+      //FastLED.show();
     } 
 
   // ------------------------------------------- LEDS ON, DELAYING -------------------------------------------
@@ -68,6 +69,7 @@ void loop(){
       state = OFF_DELAY;
       leds_off = 0;
       current_time = millis();
+      //FastLED.show();
     } 
 
   // ------------------------------------------- LEDS OFF, DELAYING -------------------------------------------

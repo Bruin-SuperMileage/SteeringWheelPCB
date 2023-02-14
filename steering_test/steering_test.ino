@@ -1,3 +1,5 @@
+#include <FastLED.h>
+
 // INPUTS //
 
 #define DAQ_BUTTON 14
@@ -24,6 +26,47 @@
 #define IN_3 11
 #define IN_4 12
 
+// --------------- LED GLOBAL ---------------
+
+enum LED_STATE {ON, OFF, ON_DELAY, OFF_DELAY};
+
+double brightness = 1.0;
+
+// --------------- BRAKE LED CONTROL ---------------
+
+#define BRAKE_LED_PIN     1
+#define BRAKE_NUM_LEDS    10
+
+CRGB brake_leds[BRAKE_NUM_LEDS];
+
+// --------------- TURN LED CONTROL ---------------
+
+#define LEFT_TURN_LED_PIN          1//50
+#define RIGHT_TURN_LED_PIN         2
+#define TURN_NUM_LEDS              10
+#define TURN_SHOW_DELAY            100
+#define TURN_TRANSITION_DELAY      500
+
+CRGB left_leds[TURN_NUM_LEDS];
+CRGB right_leds[TURN_NUM_LEDS];
+
+long unsigned int current_turn_time;
+
+int turn_leds_on = 0;
+int turn_leds_off = 0;
+
+LED_STATE turn_led_state = ON;
+
+int turn_state = 0;
+
+
+// --------------- SET-UP ---------------
+
+bool read_switch(int port);
+bool update_device(int port);
+
+
+CLEDController *controllers[1];
 
 void setup() {
   // put your setup code here, to run once:
@@ -53,91 +96,164 @@ void setup() {
   pinMode(IN_2, OUTPUT);
   pinMode(IN_3, OUTPUT);
   pinMode(IN_4, OUTPUT);
+  
 
+  // BRAKE LED SET-UP //
+
+  FastLED.addLeds<WS2812, BRAKE_LED_PIN, GRB>(brake_leds, BRAKE_NUM_LEDS);
+
+  // TURN LED SET-UP //
+
+  //FastLED.addLeds<WS2812, LEFT_TURN_LED_PIN, GRB>(left_leds, TURN_NUM_LEDS);
+  //FastLED.addLeds<WS2812, RIGHT_TURN_LED_PIN, GRB>(right_leds, TURN_NUM_LEDS);
+  
+  current_turn_time = millis();
 }
 
+
+// --------------- MAIN LOOP ---------------
 void loop() {
 
-  // MANAGE STATUS LEDS
+
+  // Turn and turn LED setting
+
+  /*
+  if(read_switch(LEFT_TURN_SWITCH) && read_switch(RIGHT_TURN_SWITCH))
+    turn_state = 3 - turn_state;
+  else if(read_switch(LEFT_TURN_SWITCH))
+    turn_state = 1;
+  else if(read_switch(RIGHT_TURN_SWITCH))
+    turn_state = 2;
+  else turn_state = 0;*/  // This code is for when we integrate both turning lights
+
+
+  /*
+  if(read_switch(LEFT_TURN_SWITCH)) 
+    turn_state = 1;
+  else turn_state = 0;
   
-  controlHeadlightOut();
-  /*controlLeftTurnOut();
-  controlRightTurnOut();
-  controlBrakeOut();
-  controlHorn();*/
-  //bool state = true;
-  //digitalWrite(HEADLIGHT_MOSFET, state);
 
-  //Serial.print("Switch state: ");
-  //Serial.println(digitalRead(HEADLIGHT_SWITCH));
-  //delay(1000);
-}
+  //Serial.println(turn_state);
 
-
-// SWITCH MANAGING FUNCTIONS
-
-bool readHeadlightSwitch(){
-  return digitalRead(HEADLIGHT_SWITCH);
-}
-
-bool readLeftTurnSwitch(){
-  return digitalRead(LEFT_TURN_SWITCH);
-}
-
-bool readRightTurnSwitch(){
-  return digitalRead(RIGHT_TURN_SWITCH);
-}
-
-bool readBrakeSwitch(){
-  return digitalRead(BRAKE_SWITCH);
-}
-
-bool readHornSwitch(){
-  return digitalRead(HORN_SWITCH);
-}
-
-
-void controlHeadlightOut(){
-  bool state = readHeadlightSwitch(); // set this eq to a var
-
-  Serial.print("Headlight state: ");
-  Serial.println(state);
+  if(turn_state != 0){
   
-  digitalWrite(HEADLIGHT_MOSFET, state);
+    // ------------------------------------------- TURNING TURN LEDS ON -------------------------------------------
+    if(turn_led_state == ON) {
+  
+      if(turn_leds_on < TURN_NUM_LEDS) {
+        
+        if(millis() - current_turn_time > TURN_SHOW_DELAY){
+
+          if(turn_state == 1){
+            left_leds[turn_leds_on].setRGB((int)(255 * brightness), 0, 0);
+            //right_leds[turn_leds_on].setRGB(0, 0, 0);
+          } else {
+            right_leds[turn_leds_on].setRGB((int)(255 * brightness), 0, 0);
+            left_leds[turn_leds_on].setRGB(0, 0, 0);
+          }
+          
+          FastLED.show();
+          turn_leds_on++;
+          current_turn_time = millis();
+        }
+        
+      } else{
+        turn_led_state = ON_DELAY;
+        turn_leds_on = 0;
+        current_turn_time = millis();
+        //FastLED.show();
+      } 
+  
+    // ------------------------------------------- TURN LEDS ON, DELAYING -------------------------------------------
+    } else if(turn_led_state == ON_DELAY){
+      
+      if(millis() - current_turn_time > TURN_TRANSITION_DELAY){
+        turn_led_state = OFF;
+        current_turn_time = millis();
+      }
+  
+    // ------------------------------------------- TURNING TURN LEDS OFF -------------------------------------------
+    } else if(turn_led_state == OFF){
+  
+      if(turn_leds_off < TURN_NUM_LEDS) {
+        
+        if(millis() - current_turn_time > TURN_SHOW_DELAY){
+
+          if(turn_state == 1)
+            left_leds[turn_leds_off].setRGB(0, 0, 0);
+          else
+            right_leds[turn_leds_off].setRGB(0, 0, 0);
+           
+          FastLED.show();
+          turn_leds_off++;
+          current_turn_time = millis();
+        }
+        
+      } else{
+        turn_led_state = OFF_DELAY;
+        turn_leds_off = 0;
+        current_turn_time = millis();
+        //FastLED.show();
+      } 
+  
+    // ------------------------------------------- TURN LEDS OFF, DELAYING -------------------------------------------
+    } else if(turn_led_state == OFF_DELAY){
+  
+      if(millis() - current_turn_time > TURN_TRANSITION_DELAY){
+        turn_led_state = ON;
+        current_turn_time = millis();
+      }
+    }
+  } else{
+
+    turn_led_state = ON;
+    turn_leds_on = 0;
+    turn_leds_off = 0;
+    
+    for(int i = 0; i < TURN_NUM_LEDS; i++) {
+      left_leds[i].setRGB(0, 0, 0);
+      //right_leds[turn_leds_off].setRGB(0, 0, 0);
+    }
+    
+    FastLED.show();
+    current_turn_time = millis();
+  }*/
+
+  // End of turn LED stuff
+
+  //Serial.println(read_switch(LEFT_TURN_SWITCH));
+
+  // Set brake LEDs
+  
+  if(read_switch(LEFT_TURN_SWITCH)){
+    Serial.println("Should be turning leds on");
+    uint8_t gBrightness = 128;
+    fill_solid(brake_leds, BRAKE_NUM_LEDS, CRGB((int)(255 * brightness),0,0));
+    controllers[0] -> showLeds(gBrightness);
+    Serial.println("Turned on");
+    //FastLED.show();
+  } else {
+    uint8_t gBrightness = 128;
+    fill_solid(brake_leds, BRAKE_NUM_LEDS, CRGB(0,0,0));
+    controllers[0] -> showLeds(gBrightness);
+    //FastLED.show();
+    Serial.println("Turning leds off");
+  }
+  
+  // End of brake LED stuff
 }
 
-void controlLeftTurnOut(){
-  bool state = readLeftTurnSwitch(); // set this eq to a var
 
-  Serial.println("Left turn blinker state: ");
-  Serial.println(state);
-  
-  digitalWrite(LEFT_TURN_MOSFET, state);
+// SWITCH & OUTPUT MANAGING FUNCTIONS
+
+bool read_switch(int port){
+  return digitalRead(port);
 }
 
-void controlRightTurnOut(){
-  bool state = readRightTurnSwitch(); // set this eq to a var
 
-  Serial.println("Right turn blinker state: ");
-  Serial.println(state);
-  
-  digitalWrite(RIGHT_TURN_MOSFET, state);
-}
+bool update_device(int port){
+  bool state = read_switch(port);
 
-void controlBrakeOut(){
-  bool state = readBrakeSwitch(); // set this eq to a var
-
-  Serial.println("Brake state: ");
-  Serial.println(state);
-  
-  digitalWrite(BRAKE_MOSFET, state);
-}
-
-void controlHorn(){
-  bool state = readHornSwitch();
-  
-  Serial.println("Horn state: ");
-  Serial.println(state);
-  
-  digitalWrite(HORN_MOSFET, state);
+  digitalWrite(port, state);
+  return state;
 }
