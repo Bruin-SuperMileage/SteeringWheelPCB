@@ -48,19 +48,18 @@ const int TURN_NUM_LEDS               = 10;
 const int TURN_SHOW_DELAY             = 50;
 const int TURN_TRANSITION_DELAY       = 500;
 
-CRGB left_leds[TURN_NUM_LEDS];
-CRGB right_leds[TURN_NUM_LEDS];
 
-long unsigned int current_left_turn_time;
-long unsigned int current_right_turn_time;
+// Container class for our variables
+struct LEDStateStrip {
+  CRGB leds[TURN_NUM_LEDS];
+  int leds_on;
+  int leds_off;
+  long unsigned int current_time;
+  LED_STATE state;
+};
 
-int left_turn_leds_on = 0;
-int left_turn_leds_off = 0;
-int right_turn_leds_on = 0;
-int right_turn_leds_off = 0;
-
-LED_STATE left_turn_led_state = ON;
-LED_STATE right_turn_led_state = ON;
+LEDStateStrip left_turn_leds;
+LEDStateStrip right_turn_leds;
 
 
 // --------------- PRE-SET-UP ---------------
@@ -68,8 +67,8 @@ LED_STATE right_turn_led_state = ON;
 bool read_switch(int port);
 bool update_device(int port);
 
-void reset_leds(CRGB leds[], long unsigned int &current_turn_time, LED_STATE &turn_led_state, int &turn_leds_on, int &turn_leds_off);
-void set_leds_turn(CRGB leds[], long unsigned int &current_turn_time, LED_STATE &turn_led_state, int &turn_leds_on, int &turn_leds_off);
+void reset_leds(LEDStateStrip &strip);
+void set_leds_turn(LEDStateStrip &strip);
 
 // ------------------------------------------------------------------------------ SETUP () --------------------------------------------------------------------
 void setup() {
@@ -100,6 +99,17 @@ void setup() {
   pinMode(IN_2, OUTPUT);
   pinMode(IN_3, OUTPUT);
   pinMode(IN_4, OUTPUT);
+
+
+  // LED STRIP SETUP
+
+  left_turn_leds.leds_on = 0;
+  left_turn_leds.leds_off = 0;
+  right_turn_leds.leds_on = 0;
+  right_turn_leds.leds_off = 0;
+  
+  left_turn_leds.state = ON;
+  right_turn_leds.state = ON;
   
 
   // BRAKE LED SET-UP //
@@ -108,20 +118,17 @@ void setup() {
 
   // TURN LED SET-UP //
 
-  FastLED.addLeds<WS2812, FRONT_LEFT_TURN_LED_PIN, GRB>(left_leds, TURN_NUM_LEDS);
-  FastLED.addLeds<WS2812, FRONT_RIGHT_TURN_LED_PIN, GRB>(right_leds, TURN_NUM_LEDS);
+  FastLED.addLeds<WS2812, FRONT_LEFT_TURN_LED_PIN, GRB>(left_turn_leds.leds, TURN_NUM_LEDS);
+  FastLED.addLeds<WS2812, FRONT_RIGHT_TURN_LED_PIN, GRB>(right_turn_leds.leds, TURN_NUM_LEDS);
   
-  current_left_turn_time = millis();
-  current_right_turn_time = millis();
+  right_turn_leds.current_time = millis();
+  right_turn_leds.current_time = millis();
 }
-
 
 // ------------------------------------------------------------------------ MAIN LOOP ---------------------------------------------------------------------------
 void loop() {
 
-
-  // Turn and turn LED setting
-
+  // State printing
   Serial.print("Hazard Switch: ");
   Serial.print(read_switch(HAZARD_SWITCH));
   Serial.print(", Left Switch: ");
@@ -129,30 +136,40 @@ void loop() {
   Serial.print(", Right Switch: ");
   Serial.println(read_switch(RIGHT_TURN_SWITCH));
 
-  delay(50);
+  Serial.print("Headlight Switch: ");
+  Serial.println(read_switch(HEADLIGHT_SWITCH));
 
+  Serial.print("Horn Switch: ");
+  Serial.println(read_switch(HORN_SWITCH));
+
+  delay(50);
+  
+  // SETTING TURN + HAZARD LIGHTS
   if(read_switch(HAZARD_SWITCH)){
-    set_leds_turn(left_leds, current_left_turn_time, left_turn_led_state, left_turn_leds_on, left_turn_leds_off);
-    set_leds_turn(right_leds, current_right_turn_time, right_turn_led_state, right_turn_leds_on, right_turn_leds_off);
+    set_leds_turn(left_turn_leds);
+    set_leds_turn(right_turn_leds);
   } 
   
   else if(read_switch(LEFT_TURN_SWITCH)){
-    reset_leds(right_leds, current_right_turn_time, right_turn_led_state, right_turn_leds_on, right_turn_leds_off);
-    set_leds_turn(left_leds, current_left_turn_time, left_turn_led_state, left_turn_leds_on, left_turn_leds_off);
+    reset_leds(right_turn_leds);
+    set_leds_turn(left_turn_leds);
   } 
   
   else if(read_switch(RIGHT_TURN_SWITCH)){
-    reset_leds(left_leds, current_left_turn_time, left_turn_led_state, left_turn_leds_on, left_turn_leds_off);
-    set_leds_turn(right_leds, current_right_turn_time, right_turn_led_state, right_turn_leds_on, right_turn_leds_off);
+    reset_leds(left_turn_leds);
+    set_leds_turn(right_turn_leds);
   } 
   
   else {
-    reset_leds(left_leds, current_left_turn_time, left_turn_led_state, left_turn_leds_on, left_turn_leds_off);
-    reset_leds(right_leds, current_right_turn_time, right_turn_led_state, right_turn_leds_on, right_turn_leds_off);
+    reset_leds(left_turn_leds);
+    reset_leds(right_turn_leds);
   }
-  
-  
-  // End of brake LED stuff
+
+  // SETTING HEADLIGHTS
+  update_device(HEADLIGHT_SWITCH, HEADLIGHT_MOSFET);
+
+  // SETTING HORN
+  update_device(HORN_SWITCH, HORN_MOSFET);
 }
 
 // ------------------------------------------------------------------------ END OF MAIN LOOP ---------------------------------------------------------------------------
@@ -172,76 +189,78 @@ bool update_device(int input_port, int output_port){
   return state;
 }
 
+
 // LED TURN STATE MACHINE
 
-void set_leds_turn(CRGB leds[], long unsigned int &current_turn_time, LED_STATE &turn_led_state, int &turn_leds_on, int &turn_leds_off){
+void set_leds_turn(LEDStateStrip &strip){
 
   // ------------------------------------------- TURNING TURN LEDS ON -------------------------------------------
-  if(turn_led_state == ON) {
+  if(strip.state == ON) {
 
-    if(turn_leds_on < TURN_NUM_LEDS) {
+    if(strip.leds_on < TURN_NUM_LEDS) {
       
-      if(millis() - current_turn_time > TURN_SHOW_DELAY){
+      if(millis() - strip.current_time > TURN_SHOW_DELAY){
 
-        leds[turn_leds_on].setRGB((int)(255 * brightness), 0, 0);
+        strip.leds[strip.leds_on].setRGB((int)(255 * brightness), 0, 0);
         FastLED.show();
-        turn_leds_on++;
-        current_turn_time = millis();
+        strip.leds_on++;
+        strip.current_time = millis();
       }
       
     } else{
-      turn_led_state = ON_DELAY;
-      turn_leds_on = 0;
-      current_turn_time = millis();
+      strip.state = ON_DELAY;
+      strip.leds_on = 0;
+      strip.current_time = millis();
       FastLED.show();
     } 
 
   // ------------------------------------------- TURN LEDS ON, DELAYING -------------------------------------------
-  } else if(turn_led_state == ON_DELAY){
+  } else if(strip.state == ON_DELAY){
     
-    if(millis() - current_turn_time > TURN_TRANSITION_DELAY){
-      turn_led_state = OFF;
-      current_turn_time = millis();
+    if(millis() - strip.current_time > TURN_TRANSITION_DELAY){
+      strip.state = OFF;
+      strip.current_time = millis();
     }
 
   // ------------------------------------------- TURNING TURN LEDS OFF -------------------------------------------
-  } else if(turn_led_state == OFF){
+  } else if(strip.state == OFF){
 
-    if(turn_leds_off < TURN_NUM_LEDS) {
+    if(strip.leds_off < TURN_NUM_LEDS) {
       
-      if(millis() - current_turn_time > TURN_SHOW_DELAY){
+      if(millis() - strip.current_time > TURN_SHOW_DELAY){
 
-        leds[turn_leds_off].setRGB(0, 0, 0);
+        strip.leds[strip.leds_off].setRGB(0, 0, 0);
         
         FastLED.show();
-        turn_leds_off++;
-        current_turn_time = millis();
+        strip.leds_off++;
+        strip.current_time = millis();
       }
       
     } else{
-      turn_led_state = OFF_DELAY;
-      turn_leds_off = 0;
-      current_turn_time = millis();
+      strip.state = OFF_DELAY;
+      strip.leds_off = 0;
+      strip.current_time = millis();
       FastLED.show();
     } 
 
   // ------------------------------------------- TURN LEDS OFF, DELAYING -------------------------------------------
-  } else if(turn_led_state == OFF_DELAY){
+  } else if(strip.state == OFF_DELAY){
 
-    if(millis() - current_turn_time > TURN_TRANSITION_DELAY){
-      turn_led_state = ON;
-      current_turn_time = millis();
+    if(millis() - strip.current_time > TURN_TRANSITION_DELAY){
+      strip.state = ON;
+      strip.current_time = millis();
     }
   } 
 }
 
-void reset_leds(CRGB leds[], long unsigned int &current_turn_time, LED_STATE &turn_led_state, int &turn_leds_on, int &turn_leds_off){
-    turn_led_state = ON;
-    turn_leds_on = 0;
-    turn_leds_off = 0;
+
+void reset_leds(LEDStateStrip &strip){
+    strip.state = ON;
+    strip.leds_on = 0;
+    strip.leds_off = 0;
     
-    fill_solid(leds, TURN_NUM_LEDS, CRGB(0, 0, 0));
+    fill_solid(strip.leds, TURN_NUM_LEDS, CRGB(0, 0, 0));
     FastLED.show();
     
-    current_turn_time = millis();
+    strip.current_time = millis();
 }
