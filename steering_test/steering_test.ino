@@ -18,7 +18,7 @@
 #define BRAKE_MOSFET 4
 #define HORN_MOSFET 5
 #define LED1 7
-#define LED2 8
+#define MASTER_TURN_MOSFET 8
 #define IN_1 9
 #define IN_2 10
 #define IN_3 11
@@ -32,7 +32,6 @@ double brightness = 1.0;
 
 // --------------- BRAKE LED CONTROL ---------------
 
-#define BRAKE_LED_PIN      1
 const int BRAKE_NUM_LEDS = 10;
 
 CRGB brake_leds[BRAKE_NUM_LEDS];
@@ -113,8 +112,8 @@ void setup() {
   pinMode(HEADLIGHT_MOSFET, OUTPUT);
   pinMode(BRAKE_MOSFET, OUTPUT);
   pinMode(HORN_MOSFET, OUTPUT);
+  pinMode(MASTER_TURN_MOSFET, OUTPUT);
   pinMode(LED1, OUTPUT);
-  pinMode(LED2, OUTPUT);
   pinMode(IN_1, OUTPUT);
   pinMode(IN_2, OUTPUT);
   pinMode(IN_3, OUTPUT);
@@ -196,6 +195,7 @@ void loop() {
   
   // SETTING TURN + HAZARD LIGHTS
   if(read_switch(HAZARD_SWITCH)){
+    digitalWrite(MASTER_TURN_MOSFET, HIGH);
     set_leds_turn(left_turn_leds);
     set_leds_turn(right_turn_leds);
     set_leds_turn(back_left_turn_leds);
@@ -203,6 +203,7 @@ void loop() {
   } 
   
   else if(read_switch(LEFT_TURN_SWITCH)){
+    digitalWrite(MASTER_TURN_MOSFET, HIGH);
     reset_leds(right_turn_leds);
     set_leds_turn(left_turn_leds);
     reset_leds(back_right_turn_leds);
@@ -210,6 +211,7 @@ void loop() {
   } 
   
   else if(read_switch(RIGHT_TURN_SWITCH)){
+    digitalWrite(MASTER_TURN_MOSFET, HIGH);
     reset_leds(left_turn_leds);
     set_leds_turn(right_turn_leds);
     reset_leds(back_left_turn_leds);
@@ -221,6 +223,7 @@ void loop() {
     reset_leds(right_turn_leds);
     reset_leds(back_left_turn_leds);
     reset_leds(back_right_turn_leds);
+    digitalWrite(MASTER_TURN_MOSFET, LOW);
   }
 
   // Remember to ask Achyuta what we're gonna do for the brake input to the board
