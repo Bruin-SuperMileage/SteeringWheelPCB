@@ -83,28 +83,8 @@ void setup() {
 }
 // ------------------------------------------------------------------------ MAIN LOOP ---------------------------------------------------------------------------
 void loop() {
-  // State printing
-//  Serial.print("Hazard Switch: ");
-//  Serial.print(read_switch(HAZARD_SWITCH));
-//  Serial.print(", Left Switch: ");
-//  Serial.print(read_switch(LEFT_TURN_SWITCH));
-//  Serial.print(", Right Switch: ");
-//  Serial.println(read_switch(RIGHT_TURN_SWITCH));
-//
-//  Serial.print("Headlight Switch: ");
-//  Serial.println(read_switch(HEADLIGHT_SWITCH));
-//
-//
-//  Serial.print("Wiper Switch: ");
-//  Serial.println(read_switch(WIPER_SWITCH));
-//
-//  Serial.print("Horn Switch: ");
-//  Serial.println(read_switch(HORN_SWITCH));
-//
-//  Serial.print("DAQ Switch: ");
-//  Serial.println(read_switch(DAQ_BUTTON));
 
-  // SETTING TURN + HAZARD LIGHTS (OR BOTH TURNS LIGHTS ON AT ONCE)
+  // SETTING TURN + HAZARD LIGHTS (OR BOTH TURN LIGHTS ON AT ONCE)
   if(read_switch(HAZARD_SWITCH) || (read_switch(LEFT_TURN_SWITCH) && read_switch(RIGHT_TURN_SWITCH))){
     digitalWrite(MASTER_TURN_MOSFET, HIGH);
     set_leds_turn(left_turn_leds, "FRONT");
@@ -140,7 +120,7 @@ void loop() {
   
   // SETTING BRAKE LIGHTS
   digitalWrite(MASTER_TURN_MOSFET, HIGH);
-  if(read_switch(BRAKE_SWITCH))
+  if(!read_switch(BRAKE_SWITCH))
     fill_solid(brake_leds, BRAKE_NUM_LEDS, CRGB(255, 0, 0));
   else
     fill_solid(brake_leds, BRAKE_NUM_LEDS, CRGB(0, 0, 0));
