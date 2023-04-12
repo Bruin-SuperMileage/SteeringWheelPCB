@@ -52,6 +52,7 @@ struct LEDStateStrip {
 
 // --------------- WIPER CONTROL ----------------
 enum WIPER_STATE {EXTEND, RETRACT, EXTEND_DELAY, RETRACT_DELAY};
+enum RESET_STATE {START_DELAY, HOMING, END_DELAY, RESET};
 
 struct WiperController {
   const long unsigned int mosfet_delay = 2000;
@@ -60,6 +61,7 @@ struct WiperController {
   long unsigned int return_time;
   bool homed;
   WIPER_STATE state;
+  RESET_STATE reset_state;
 };
 
 #endif

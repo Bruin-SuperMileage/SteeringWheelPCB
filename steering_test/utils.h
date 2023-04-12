@@ -87,7 +87,10 @@ void reset_leds(LEDStateStrip &strip){
 // WIPER STATE MACHINE
 void set_wiper(WiperController &wiper){
 
+  // Reset vars for homing
   wiper.homed = false;
+
+  // State machine
   if(wiper.state == EXTEND){
     if(millis() - wiper.current_time < wiper.wipe_time)
       set_wiper_mosfets("EXTEND");
@@ -119,12 +122,41 @@ void reset_wiper(WiperController &wiper){
   if(wiper.homed)
     return;
 
-  // If true, wiper isn't homed.
-  if(wiper.state == EXTEND || wiper.state == RETRACT){
+  // Already at home position, send immediately to final delay
+  if(wiper.state == RETRACT_DELAY){
+    wiper.reset_state = END_DELAY;
+    wiper.current_time = millis();
+  }
+
+
+  // Initial delay to prevent shoot-through
+  if(wiper.reset_state == START_DELAY){
+
+    // Using return_time to timekeep, ugly code, ignore
+    if(wiper.return_time == -1)
+      wiper.return_time = millis();
+    
+    if(millis() - wiper.return_time < wiper.mosfet_delay)
+      set_wiper_mosfets("STOP");
+    else {
+      set_wiper_mosfets("STOP");
+      wiper.reset_state = HOMING;
+      wiper.return_time = -1;
+
+      // If wiper is completely extended, change current_time and state so that it'll return to home in HOMING state
+      if(wiper.state == EXTEND_DELAY)
+        wiper.current_time = millis() - wiper.mosfet_delay - wiper.wipe_time;
+        wiper.state = EXTEND;
+    }
+  }
+
+
+  // Return to home position
+  if(wiper.reset_state == HOMING){
 
     // First time this code is run, saves the amount of time wiper has been extended
     if(wiper.return_time == -1) {
-      wiper.return_time = millis() - wiper.current_time;
+      wiper.return_time = millis() - wiper.mosfet_delay - wiper.current_time;
       wiper.current_time = millis();
     }
     
@@ -140,16 +172,29 @@ void reset_wiper(WiperController &wiper){
       set_wiper_mosfets("RETRACT");
 
     // At home, state switched so that the next if statement resets all other variables
+    else{
+      wiper.return_time = -1;
+      wiper.reset_state = END_DELAY;
+      wiper.current_time = millis();
+    }
+  }
+  
+
+  // Delay at the end of movement to prevent shoot-through
+  if(wiper.reset_state == END_DELAY){
+    if(millis() - wiper.current_time < wiper.mosfet_delay)
+      set_wiper_mosfets("STOP");
     else
-      wiper.state = EXTEND_DELAY;
+      wiper.reset_state = RESET;
   }
 
   // Resets all variables, wiper is at home position
-  if(!(wiper.state == EXTEND || wiper.state == RETRACT)){
+  if(wiper.reset_state == RESET){
     set_wiper_mosfets("STOP");
     wiper.homed = true;
     wiper.state = EXTEND;
     wiper.return_time = -1;
+    wiper.reset_state = START_DELAY;
     wiper.current_time = millis();
   }
 }
