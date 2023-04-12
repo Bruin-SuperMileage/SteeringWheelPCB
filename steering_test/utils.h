@@ -86,21 +86,19 @@ void reset_leds(LEDStateStrip &strip){
 
 // WIPER STATE MACHINE
 void set_wiper(WiperController &wiper){
+
+  wiper.homed = false;
   if(wiper.state == EXTEND){
-    if(!read_switch(LIMIT_SWITCH)|| (wiper.move_up && millis()- wiper.current_time < 2000))
+    if(millis() - wiper.current_time < wiper.wipe_time)
       set_wiper_mosfets("EXTEND");
-    else if(wiper.move_up && millis() - wiper.current_time > 2000)
-      wiper.move_up = false;
     else{
       set_wiper_mosfets("STOP");
       wiper.current_time = millis();
       wiper.state = EXTEND_DELAY;
     }
   } else if(wiper.state == RETRACT){
-    if(!read_switch(LIMIT_SWITCH) || (wiper.move_up && millis() - wiper.current_time < 2000))
+    if(millis() - wiper.current_time < wiper.wipe_time)
       set_wiper_mosfets("RETRACT");
-    else if(wiper.move_up && millis() - wiper.current_time > 2000)
-      wiper.move_up = false;
     else {
       set_wiper_mosfets("STOP");
       wiper.current_time = millis();
@@ -110,7 +108,6 @@ void set_wiper(WiperController &wiper){
     if(millis() - wiper.current_time > wiper.mosfet_delay){
       wiper.state = (wiper.state == EXTEND_DELAY) ? RETRACT : EXTEND;
       wiper.current_time = millis();
-      wiper.move_up = true;
     }
     else
       set_wiper_mosfets("STOP");
@@ -118,12 +115,43 @@ void set_wiper(WiperController &wiper){
 }
 
 void reset_wiper(WiperController &wiper){
-  if(!read_switch(LIMIT_SWITCH))
-    set_wiper_mosfets("RETRACT");
-  else
+
+  if(wiper.homed)
+    return;
+
+  // If true, wiper isn't homed.
+  if(wiper.state == EXTEND || wiper.state == RETRACT){
+
+    // First time this code is run, saves the amount of time wiper has been extended
+    if(wiper.return_time == -1) {
+      wiper.return_time = millis() - wiper.current_time;
+      wiper.current_time = millis();
+    }
+    
+    // Time has been saved, return to home position
+
+    // Calculates time to return
+    // Either return_time:          wiper has extended a certain amount, needs to return the same amount
+    // Or wipe_time - return_time:  wiper has returned a certain amount, needs to return whatever distance is left
+    long unsigned int time_to_move = (wiper.state == EXTEND) ? wiper.return_time : wiper.wipe_time - wiper.return_time;
+
+    // Returns until it meets time_to_move (has arrived at home position)
+    if(millis() - wiper.current_time < time_to_move)
+      set_wiper_mosfets("RETRACT");
+
+    // At home, state switched so that the next if statement resets all other variables
+    else
+      wiper.state = EXTEND_DELAY;
+  }
+
+  // Resets all variables, wiper is at home position
+  if(!(wiper.state == EXTEND || wiper.state == RETRACT)){
     set_wiper_mosfets("STOP");
-  wiper.move_up = false;
-  wiper.state = EXTEND;
+    wiper.homed = true;
+    wiper.state = EXTEND;
+    wiper.return_time = -1;
+    wiper.current_time = millis();
+  }
 }
 
 void set_wiper_mosfets(String direction){

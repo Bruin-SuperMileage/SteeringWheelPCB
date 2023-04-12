@@ -55,8 +55,10 @@ enum WIPER_STATE {EXTEND, RETRACT, EXTEND_DELAY, RETRACT_DELAY};
 
 struct WiperController {
   const long unsigned int mosfet_delay = 2000;
+  const long unsigned int wipe_time = 2500;
   long unsigned int current_time;
-  bool move_up;
+  long unsigned int return_time;
+  bool homed;
   WIPER_STATE state;
 };
 

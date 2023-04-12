@@ -61,7 +61,7 @@ void setup() {
   
   // WIPER SET-UP //
   wiper_controller.state = EXTEND;
-  wiper_controller.move_up = true;
+  wiper_controller.homed = true;
   
   // RESET WIPER MOSFETS
   digitalWrite(IN_1, LOW);
@@ -129,7 +129,10 @@ void loop() {
   
   // SETTING WIPER
   if(read_switch(WIPER_SWITCH))
-    set_wiper(wiper_controller);
+    if(!wiper_controller.homed)
+      reset_wiper(wiper_controller);
+    else
+      set_wiper(wiper_controller);
   else
     reset_wiper(wiper_controller);
   
