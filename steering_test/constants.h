@@ -56,12 +56,12 @@ enum RESET_STATE {START_DELAY, HOMING, END_DELAY, RESET};
 
 struct WiperController {
   const long unsigned int mosfet_delay = 2000;
-  const long unsigned int wipe_time = 2500;
   long unsigned int current_time;
-  long unsigned int return_time;
-  bool homed;
+  bool home;
   WIPER_STATE state;
   RESET_STATE reset_state;
+  long unsigned int return_time;
+  bool flag;
 };
 
 #endif

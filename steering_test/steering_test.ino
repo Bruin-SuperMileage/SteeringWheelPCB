@@ -61,15 +61,17 @@ void setup() {
   
   // WIPER SET-UP //
   wiper_controller.state = EXTEND;
-  wiper_controller.homed = true;
-  wiper_controller.reset_state = -1;
+  wiper_controller.home = true;
+  wiper_controller.reset_state = START_DELAY;
+  wiper_controller.return_time = -1;
+  wiper_controller.flag = true;
   
   // RESET WIPER MOSFETS
   digitalWrite(IN_1, LOW);
   digitalWrite(IN_2, LOW);
   digitalWrite(IN_3, LOW);
   digitalWrite(IN_4, LOW);
-
+  
   // SET MASTER MOSFET ON (TO TURN LEDS OFF AT START)
   digitalWrite(MASTER_TURN_MOSFET, HIGH);
   
@@ -84,8 +86,28 @@ void setup() {
 }
 // ------------------------------------------------------------------------ MAIN LOOP ---------------------------------------------------------------------------
 void loop() {
+  // State printing
+//  Serial.print("Hazard Switch: ");
+//  Serial.print(read_switch(HAZARD_SWITCH));
+//  Serial.print(", Left Switch: ");
+//  Serial.print(read_switch(LEFT_TURN_SWITCH));
+//  Serial.print(", Right Switch: ");
+//  Serial.println(read_switch(RIGHT_TURN_SWITCH));
+//
+//  Serial.print("Headlight Switch: ");
+//  Serial.println(read_switch(HEADLIGHT_SWITCH));
+//
+//
+//  Serial.print("Wiper Switch: ");
+//  Serial.println(read_switch(WIPER_SWITCH));
+//
+//  Serial.print("Horn Switch: ");
+//  Serial.println(read_switch(HORN_SWITCH));
+//
+//  Serial.print("DAQ Switch: ");
+//  Serial.println(read_switch(DAQ_BUTTON));
 
-  // SETTING TURN + HAZARD LIGHTS (OR BOTH TURN LIGHTS ON AT ONCE)
+  // SETTING TURN + HAZARD LIGHTS (OR BOTH TURNS LIGHTS ON AT ONCE)
   if(read_switch(HAZARD_SWITCH) || (read_switch(LEFT_TURN_SWITCH) && read_switch(RIGHT_TURN_SWITCH))){
     digitalWrite(MASTER_TURN_MOSFET, HIGH);
     set_leds_turn(left_turn_leds, "FRONT");
@@ -93,7 +115,7 @@ void loop() {
     set_leds_turn(back_left_turn_leds, "BACK");
     set_leds_turn(back_right_turn_leds, "BACK");
   }
-
+  
   else if(read_switch(LEFT_TURN_SWITCH)){
     digitalWrite(MASTER_TURN_MOSFET, HIGH);
     reset_leds(right_turn_leds);
@@ -117,23 +139,22 @@ void loop() {
     reset_leds(back_right_turn_leds);
     digitalWrite(MASTER_TURN_MOSFET, LOW);
   }
-
+  
   
   // SETTING BRAKE LIGHTS
   digitalWrite(MASTER_TURN_MOSFET, HIGH);
+  //Serial.print(millis());
+  //Serial.println(digitalRead(BRAKE_SWITCH));
   if(!read_switch(BRAKE_SWITCH))
     fill_solid(brake_leds, BRAKE_NUM_LEDS, CRGB(255, 0, 0));
   else
     fill_solid(brake_leds, BRAKE_NUM_LEDS, CRGB(0, 0, 0));
-  
+    
   FastLED.show();
   
   // SETTING WIPER
   if(read_switch(WIPER_SWITCH))
-    if(!wiper_controller.homed)
-      reset_wiper(wiper_controller);
-    else
-      set_wiper(wiper_controller);
+    set_wiper(wiper_controller);
   else
     reset_wiper(wiper_controller);
   
